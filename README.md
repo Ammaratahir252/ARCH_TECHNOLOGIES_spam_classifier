@@ -1,15 +1,5 @@
 # SpamGuard — Email Spam Classifier
 
-**ARCH Technologies — ML Internship | Task 1**
-
----
-
-## Task Requirements Covered
-- [x] Preprocess email text data
-- [x] Extract important features (TF-IDF vectorization)
-- [x] Train a model to identify spam emails
-- [x] Evaluate model performance (Accuracy, Precision, Recall, F1)
-
 ## Models
 | Model | Description |
 |-------|-------------|
