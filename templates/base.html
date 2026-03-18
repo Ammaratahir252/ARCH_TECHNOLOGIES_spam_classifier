@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}SpamGuard{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #f6f5f2;
+      --surface:   #ffffff;
+      --surface2:  #f0ede8;
+      --surface3:  #e8e4de;
+      --ink:       #1a1916;
+      --ink2:      #68655e;
+      --ink3:      #a6a29c;
+      --border:    #e4e0d8;
+      --border2:   #ccc8c0;
+      --red:       #c53030;
+      --red-bg:    #fff5f5;
+      --red-b:     #f5c6c6;
+      --blue:      #1a56db;
+      --blue-bg:   #eff4ff;
+      --blue-b:    #c3d4f7;
+      --amber:     #92600a;
+      --amber-bg:  #fffbeb;
+      --amber-b:   #f5d98a;
+      --sidebar:   204px;
+      --topbar:    52px;
+      --r:         8px;
+      --r-sm:      5px;
+      --r-lg:      12px;
+    }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--ink);
+      font-size: 13.5px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── TOPBAR ─────────────────────── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--topbar);
+      background: var(--ink);
+      border-bottom: 1px solid #2a2924;
+      display: flex; align-items: center;
+      padding: 0 22px 0 0; z-index: 300;
+    }
+    .tb-brand {
+      width: var(--sidebar); height: 100%;
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 18px; flex-shrink: 0;
+      border-right: 1px solid #2a2924;
+    }
+    .tb-logo {
+      width: 26px; height: 26px;
+      background: #ffffff14;
+      border: 1px solid #ffffff20;
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tb-logo svg { width: 13px; height: 13px; }
+    .tb-name { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -.2px; }
+    .tb-content {
+      flex: 1; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 22px;
+    }
+    .tb-crumb { font-size: 12px; color: #555; letter-spacing: .2px; }
+    .tb-right { display: flex; align-items: center; gap: 14px; }
+    .model-pill {
+      display: flex; align-items: center; gap: 7px;
+      padding: 4px 12px;
+      background: #ffffff0a; border: 1px solid #ffffff14;
+      border-radius: 20px;
+      font-size: 11px; font-family: 'DM Mono', monospace;
+      color: #666; letter-spacing: .4px;
+      transition: all .4s;
+    }
+    .model-pill.ready { color: #aaa; border-color: #ffffff20; }
+    .mp-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #444; transition: background .4s; flex-shrink: 0;
+    }
+    .mp-dot.ready { background: #68d391; animation: pulse 2.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+    .tb-sub { font-size: 11px; color: #3a3a36; font-family: 'DM Mono', monospace; }
+
+    /* ── SIDEBAR ────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: var(--topbar); left: 0; bottom: 0;
+      width: var(--sidebar);
+      background: var(--ink);
+      border-right: 1px solid #2a2924;
+      z-index: 200;
+      display: flex; flex-direction: column;
+    }
+    .nav-group { padding: 18px 12px 6px; }
+    .nav-g-lbl {
+      font-size: 9.5px; font-weight: 600;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: #333; font-family: 'DM Mono', monospace;
+      padding: 0 6px; margin-bottom: 4px;
+    }
+    .nav-a {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 9px; border-radius: var(--r-sm);
+      text-decoration: none; margin-bottom: 2px;
+      transition: background .12s;
+    }
+    .nav-a:hover  { background: #1c1b18; }
+    .nav-a.active { background: #242320; }
+    .nav-ic {
+      width: 14px; height: 14px; color: #3a3a36;
+      flex-shrink: 0; transition: color .15s;
+    }
+    .nav-a:hover  .nav-ic { color: #777; }
+    .nav-a.active .nav-ic { color: #bbb; }
+    .nav-tx {
+      font-size: 12.5px; font-weight: 400;
+      color: #4a4a46; transition: color .15s;
+    }
+    .nav-a:hover  .nav-tx { color: #888; }
+    .nav-a.active .nav-tx { color: #e8e5e0; font-weight: 500; }
+    .nav-ct {
+      margin-left: auto;
+      font-size: 10px; font-family: 'DM Mono', monospace;
+      color: #333; background: #181714;
+      padding: 1px 6px; border-radius: 10px; min-width: 20px; text-align: center;
+    }
+    .nav-a.active .nav-ct { color: #666; background: #242320; }
+    .nav-hr { height: 1px; background: #1e1d1a; margin: 6px 12px; }
+
+    /* Sidebar bottom card */
+    .sb-stat {
+      margin: auto 12px 14px;
+      background: #0e0d0b;
+      border: 1px solid #1e1d1a;
+      border-radius: var(--r);
+      padding: 12px;
+    }
+    .sbs-title {
+      font-size: 9.5px; font-weight: 600;
+      letter-spacing: 1.2px; text-transform: uppercase;
+      color: #2e2d2a; font-family: 'DM Mono', monospace;
+      margin-bottom: 10px;
+    }
+    .sbs-row {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 6px;
+    }
+    .sbs-row:last-child { margin-bottom: 0; }
+    .sbs-k { font-size: 11px; color: #3a3936; }
+    .sbs-v { font-size: 11px; font-family: 'DM Mono', monospace; color: #555; }
+
+    /* ── MAIN ───────────────────────── */
+    .main {
+      margin-left: var(--sidebar);
+      margin-top: var(--topbar);
+      min-height: calc(100vh - var(--topbar));
+    }
+
+    /*{% block page_css %}{% endblock %}*/
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">
+      <svg viewBox="0 0 13 13" fill="none">
+        <rect x="1" y="2" width="11" height="9" rx="1.2" stroke="#fff" stroke-width="1.1"/>
+        <path d="M1 4l5.5 4L12 4" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="tb-name">SpamGuard</span>
+  </div>
+  <div class="tb-content">
+    <span class="tb-crumb">{% block page_label %}{% endblock %}</span>
+    <div class="tb-right">
+      <div class="model-pill" id="modelPill">
+        <div class="mp-dot" id="mpDot"></div>
+        <span id="mpText">Loading models...</span>
+      </div>
+      <span class="tb-sub">Task 1 · ARCH Technologies</span>
+    </div>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="nav-group">
+    <div class="nav-g-lbl">Classify</div>
+    <a href="/" class="nav-a {% if active=='classify' %}active{% endif %}">
+      <svg class="nav-ic" viewBox="0 0 14 14" fill="none">
+        <rect x="1.5" y="2" width="11" height="10" rx="1.2" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M1.5 5h11M4 5v7" stroke="currentColor" stroke-width="1.1"/>
+      </svg>
+      <span class="nav-tx">Classifier</span>
+    </a>
+    <a href="/history" class="nav-a {% if active=='history' %}active{% endif %}">
+      <svg class="nav-ic" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M7 4v3l2 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+      <span class="nav-tx">History</span>
+      <span class="nav-ct" id="histCt">0</span>
+    </a>
+  </div>
+
+  <div class="nav-hr"></div>
+
+  <div class="nav-group">
+    <div class="nav-g-lbl">Evaluation</div>
+    <a href="/metrics" class="nav-a {% if active=='metrics' %}active{% endif %}">
+      <svg class="nav-ic" viewBox="0 0 14 14" fill="none">
+        <path d="M2 11l3-3 2.5 2 3-4 2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 2v9h10" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+      <span class="nav-tx">Metrics</span>
+    </a>
+  </div>
+
+  <div class="sb-stat">
+    <div class="sbs-title">Dataset</div>
+    <div class="sbs-row"><span class="sbs-k">Total</span><span class="sbs-v" id="sbTotal">—</span></div>
+    <div class="sbs-row"><span class="sbs-k">Spam</span><span class="sbs-v" id="sbSpam">—</span></div>
+    <div class="sbs-row"><span class="sbs-k">Ham</span><span class="sbs-v" id="sbHam">—</span></div>
+    <div class="sbs-row"><span class="sbs-k">Vocab</span><span class="sbs-v" id="sbVocab">—</span></div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+  let modelsReady = false;
+
+  async function pollStatus() {
+    try {
+      const r = await fetch('/api/status');
+      const d = await r.json();
+      if (d.ready) {
+        modelsReady = true;
+        document.getElementById('mpDot').classList.add('ready');
+        document.getElementById('mpText').textContent = d.models.length + ' models ready';
+        document.getElementById('modelPill').classList.add('ready');
+
+        const ds = d.metrics._dataset || {};
+        document.getElementById('sbTotal').textContent = (ds.total || 0).toLocaleString();
+        document.getElementById('sbSpam').textContent  = ds.spam  || '—';
+        document.getElementById('sbHam').textContent   = ds.ham   || '—';
+        document.getElementById('sbVocab').textContent = ds.vocab_size ? (ds.vocab_size/1000).toFixed(1)+'k' : '—';
+
+        if (typeof onReady === 'function') onReady(d);
+      } else {
+        setTimeout(pollStatus, 1500);
+      }
+    } catch(e) { setTimeout(pollStatus, 2000); }
+  }
+
+  async function updateHistCount() {
+    try {
+      const r = await fetch('/api/history');
+      const h = await r.json();
+      document.getElementById('histCt').textContent = h.length;
+    } catch(e) {}
+  }
+
+  pollStatus();
+  updateHistCount();
+  setInterval(updateHistCount, 5000);
+</script>
+
+{% block page_scripts %}{% endblock %}
+</body>
+</html>

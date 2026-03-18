@@ -1,0 +1,486 @@
+{% extends "base.html" %}
+{% block title %}Classifier — SpamGuard{% endblock %}
+{% block page_label %}Email Classifier{% endblock %}
+
+{% block page_css %}
+.page {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  min-height: calc(100vh - var(--topbar));
+}
+
+/* LEFT */
+.left {
+  padding: 28px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 18px;
+}
+.page-title { font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -.3px; }
+.page-sub   { font-size: 13px; color: var(--ink3); margin-top: 4px; font-weight: 300; }
+
+/* Input card */
+.input-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.ic-header {
+  padding: 12px 18px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ic-label {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--ink3);
+}
+.ic-wc { font-size: 11.5px; color: var(--ink3); font-family: 'DM Mono', monospace; }
+
+#emailText {
+  width: 100%; min-height: 180px;
+  padding: 18px; border: none; outline: none;
+  resize: none; font-size: 14.5px;
+  font-family: 'DM Sans', sans-serif; font-weight: 300;
+  color: var(--ink); background: transparent; line-height: 1.8;
+}
+#emailText::placeholder { color: var(--ink3); }
+#emailText:disabled { opacity: .4; background: var(--surface2); cursor: not-allowed; }
+
+.ic-footer {
+  padding: 11px 18px;
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.sample-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.sb {
+  font-size: 12px; font-weight: 400;
+  padding: 4px 12px; border-radius: var(--r-sm);
+  cursor: pointer; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--ink2);
+  font-family: 'DM Sans', sans-serif; transition: all .14s;
+}
+.sb:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+.sb.spam-s { color: var(--red); border-color: var(--red-b); background: var(--red-bg); }
+.sb.spam-s:hover { background: var(--red); color: #fff; }
+
+.classify-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 22px; font-size: 13px; font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--ink); color: #fff;
+  border: none; border-radius: var(--r-sm);
+  cursor: pointer; transition: opacity .15s; white-space: nowrap;
+}
+.classify-btn:hover:not(:disabled) { opacity: .83; }
+.classify-btn:disabled { opacity: .3; cursor: not-allowed; }
+.cb-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #555; transition: background .4s;
+}
+.cb-dot.on { background: #68d391; }
+
+/* Error */
+#errBox {
+  display: none; padding: 10px 16px;
+  background: var(--red-bg); border: 1px solid var(--red-b);
+  border-radius: var(--r); color: var(--red); font-size: 13px;
+}
+
+/* Result card */
+#resultCard {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  animation: rise .3s ease;
+}
+@keyframes rise { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+.res-stripe { height: 3px; }
+.rs-spam { background: var(--red); }
+.rs-ham  { background: var(--blue); }
+
+.res-top {
+  display: flex; align-items: center; gap: 18px;
+  padding: 20px 22px 16px;
+}
+.rt-spam { background: var(--red-bg); border-bottom: 1px solid var(--red-b); }
+.rt-ham  { background: var(--blue-bg); border-bottom: 1px solid var(--blue-b); }
+
+.verdict-ring {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+.vr-spam { background: var(--red); }
+.vr-ham  { background: var(--blue); }
+.vr-sym  { font-size: 22px; color: #fff; line-height: 1; }
+.vr-word {
+  font-size: 9px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: rgba(255,255,255,.7);
+  margin-top: 2px; font-family: 'DM Mono', monospace;
+}
+
+.vc-hl {
+  font-size: 22px; font-weight: 600; line-height: 1.1;
+}
+.vh-spam { color: var(--red); }
+.vh-ham  { color: var(--blue); }
+.vc-desc { font-size: 13px; color: var(--ink2); margin-top: 5px; line-height: 1.6; font-weight: 300; }
+
+.res-body { padding: 18px 22px 22px; }
+
+/* Confidence bars */
+.bar-section { margin-bottom: 20px; }
+.s-label {
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 8px;
+}
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.bar-lbl { font-size: 12px; color: var(--ink2); width: 34px; }
+.bar-track {
+  flex: 1; height: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 3px; overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 3px; transition: width .8s cubic-bezier(.16,1,.3,1); }
+.bf-spam { background: var(--red); }
+.bf-ham  { background: var(--blue); }
+.bar-pct {
+  font-size: 12px; font-weight: 500;
+  font-family: 'DM Mono', monospace;
+  width: 42px; text-align: right;
+}
+
+/* Feature grid */
+.feat-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.feat-cell {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 10px;
+}
+.fc-val {
+  font-size: 16px; font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  color: var(--ink); line-height: 1;
+}
+.fc-lbl { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .6px; margin-top: 3px; }
+
+/* RIGHT */
+.right {
+  padding: 24px 20px;
+  background: var(--surface);
+  display: flex; flex-direction: column; gap: 22px;
+}
+.rb { }
+.rb-title {
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 12px;
+  padding-bottom: 9px; border-bottom: 1px solid var(--border);
+}
+
+/* Model selector */
+.model-opts { display: flex; flex-direction: column; gap: 6px; }
+.model-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  cursor: pointer; transition: all .14s;
+  background: var(--surface2);
+}
+.model-opt:hover  { border-color: var(--border2); background: var(--surface); }
+.model-opt.sel    { border-color: var(--ink); background: var(--ink); }
+.mo-radio {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1.5px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: border-color .15s;
+}
+.model-opt.sel .mo-radio { border-color: #fff; }
+.mo-radio::after {
+  content: ''; width: 6px; height: 6px;
+  border-radius: 50%; background: transparent;
+  transition: background .15s;
+}
+.model-opt.sel .mo-radio::after { background: #fff; }
+.mo-name { font-size: 12.5px; font-weight: 400; color: var(--ink2); transition: color .15s; flex: 1; }
+.model-opt.sel .mo-name { color: #fff; }
+.mo-acc  { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--ink3); transition: color .15s; }
+.model-opt.sel .mo-acc { color: rgba(255,255,255,.5); }
+
+/* Session stats */
+.sess-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sess-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px; text-align: center;
+}
+.sess-n {
+  font-size: 24px; font-weight: 600;
+  font-family: 'DM Mono', monospace; line-height: 1;
+}
+.sess-l { font-size: 10px; color: var(--ink3); text-transform: uppercase; letter-spacing: .7px; margin-top: 3px; }
+
+/* Cleaned text preview */
+.clean-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 12px;
+  font-size: 12px; color: var(--ink2);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.6; max-height: 100px; overflow-y: auto;
+  word-break: break-word;
+}
+{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- LEFT: Input + Result -->
+  <div class="left">
+    <div>
+      <h1 class="page-title">Email spam classifier</h1>
+      <p class="page-sub">Paste any email or SMS message to classify it as spam or ham</p>
+    </div>
+
+    <div id="errBox"></div>
+
+    <div class="input-card">
+      <div class="ic-header">
+        <span class="ic-label">Message input</span>
+        <span class="ic-wc" id="wcDisplay">0 words</span>
+      </div>
+      <textarea id="emailText" disabled
+        placeholder="Waiting for models to load... (10–20 seconds)"
+        oninput="onType()"></textarea>
+      <div class="ic-footer">
+        <div class="sample-row">
+          <button class="sb spam-s" onclick="loadSample('spam1')">Spam 1</button>
+          <button class="sb spam-s" onclick="loadSample('spam2')">Spam 2</button>
+          <button class="sb"        onclick="loadSample('ham1')">Ham 1</button>
+          <button class="sb"        onclick="loadSample('ham2')">Ham 2</button>
+          <button class="sb"        onclick="clearAll()">Clear</button>
+        </div>
+        <button class="classify-btn" id="classifyBtn" onclick="classify()" disabled>
+          <span class="cb-dot" id="cbDot"></span>
+          Classify
+        </button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="resultCard">
+      <div class="res-stripe" id="resStripe"></div>
+      <div class="res-top"    id="resTop">
+        <div class="verdict-ring" id="vRing">
+          <div class="vr-sym"  id="vSym"></div>
+          <div class="vr-word" id="vWord"></div>
+        </div>
+        <div>
+          <div class="vc-hl"   id="vcHl"></div>
+          <div class="vc-desc" id="vcDesc"></div>
+        </div>
+      </div>
+      <div class="res-body">
+        <div class="bar-section">
+          <div class="s-label">Probability breakdown</div>
+          <div class="bar-row">
+            <span class="bar-lbl" style="color:var(--red)">Spam</span>
+            <div class="bar-track"><div class="bar-fill bf-spam" id="bfSpam" style="width:0%"></div></div>
+            <span class="bar-pct" id="bpSpam" style="color:var(--red)">—</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-lbl" style="color:var(--blue)">Ham</span>
+            <div class="bar-track"><div class="bar-fill bf-ham"  id="bfHam"  style="width:0%"></div></div>
+            <span class="bar-pct" id="bpHam"  style="color:var(--blue)">—</span>
+          </div>
+        </div>
+
+        <div class="s-label" style="margin-bottom:8px">Feature analysis</div>
+        <div class="feat-grid" id="featGrid"></div>
+
+        <div class="s-label" style="margin:16px 0 8px">Preprocessed text</div>
+        <div class="clean-box" id="cleanBox"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Controls + Stats -->
+  <div class="right">
+
+    <div class="rb">
+      <div class="rb-title">Select model</div>
+      <div class="model-opts" id="modelOpts">
+        <div class="model-opt sel" onclick="selectModel(this,'Naive Bayes')" data-model="Naive Bayes">
+          <div class="mo-radio"></div>
+          <span class="mo-name">Naive Bayes</span>
+          <span class="mo-acc" id="accNB">—</span>
+        </div>
+        <div class="model-opt" onclick="selectModel(this,'Logistic Regression')" data-model="Logistic Regression">
+          <div class="mo-radio"></div>
+          <span class="mo-name">Logistic Regression</span>
+          <span class="mo-acc" id="accLR">—</span>
+        </div>
+        <div class="model-opt" onclick="selectModel(this,'Linear SVM')" data-model="Linear SVM">
+          <div class="mo-radio"></div>
+          <span class="mo-name">Linear SVM</span>
+          <span class="mo-acc" id="accSVM">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rb">
+      <div class="rb-title">Session</div>
+      <div class="sess-grid">
+        <div class="sess-box"><div class="sess-n" id="sTotal">0</div><div class="sess-l">Checked</div></div>
+        <div class="sess-box"><div class="sess-n" id="sSpam" style="color:var(--red)">0</div><div class="sess-l">Spam</div></div>
+        <div class="sess-box"><div class="sess-n" id="sHam" style="color:var(--blue)">0</div><div class="sess-l">Ham</div></div>
+        <div class="sess-box"><div class="sess-n" id="sConf">—</div><div class="sess-l">Avg conf.</div></div>
+      </div>
+    </div>
+
+    <div class="rb">
+      <div class="rb-title">What to look for</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:5px"></div>
+          <span style="font-size:12px;color:var(--ink2);line-height:1.5;font-weight:300">Urgency words: FREE, WIN, URGENT, CLAIM, PRIZE</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:5px"></div>
+          <span style="font-size:12px;color:var(--ink2);line-height:1.5;font-weight:300">Phone numbers, currency symbols, excessive caps</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:5px"></div>
+          <span style="font-size:12px;color:var(--ink2);line-height:1.5;font-weight:300">Normal conversational language, no pressure tactics</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const SAMPLES = {
+    spam1: "WINNER!! As a valued network customer you have been selected to receive a £900 prize reward! To claim call 09061701461. Claim code KL341. Valid 12 hours only.",
+    spam2: "FREE entry in 2 a weekly comp to win FA Cup final tkts 21st May 2005. Text FA to 87121 to receive entry question(std txt rate)T&C's apply 08452810075over18's",
+    ham1:  "Hey, are you free tomorrow afternoon? Wanted to catch up and grab lunch if you're around. Let me know!",
+    ham2:  "The meeting has been rescheduled to 3pm. Please bring the project report and updated timeline. See you then.",
+  };
+
+  let selModel = 'Naive Bayes';
+  let sess = {total:0, spam:0, ham:0, conf:0};
+
+  function loadSample(k) { document.getElementById('emailText').value = SAMPLES[k]; onType(); }
+  function clearAll() {
+    document.getElementById('emailText').value = '';
+    onType();
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('errBox').style.display = 'none';
+  }
+
+  function onType() {
+    const v  = document.getElementById('emailText').value;
+    const wc = v.trim() ? v.trim().split(/\s+/).length : 0;
+    document.getElementById('wcDisplay').textContent = wc + ' word' + (wc!==1?'s':'');
+    document.getElementById('classifyBtn').disabled = !modelsReady || v.trim().length < 3;
+  }
+
+  function selectModel(el, name) {
+    selModel = name;
+    document.querySelectorAll('.model-opt').forEach(o => o.classList.remove('sel'));
+    el.classList.add('sel');
+  }
+
+  function onReady(d) {
+    document.getElementById('emailText').disabled = false;
+    document.getElementById('emailText').placeholder = 'Paste or type an email / SMS message here...';
+    document.getElementById('cbDot').classList.add('on');
+    const m = d.metrics;
+    if (m['Naive Bayes'])         document.getElementById('accNB').textContent  = m['Naive Bayes'].accuracy + '%';
+    if (m['Logistic Regression']) document.getElementById('accLR').textContent  = m['Logistic Regression'].accuracy + '%';
+    if (m['Linear SVM'])          document.getElementById('accSVM').textContent = m['Linear SVM'].accuracy + '%';
+  }
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function classify() {
+    const text = document.getElementById('emailText').value.trim();
+    if (text.length < 3) return;
+
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('errBox').style.display     = 'none';
+    document.getElementById('classifyBtn').disabled     = true;
+
+    try {
+      const r = await fetch('/api/predict', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text, model: selModel})
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
+      const d = await r.json();
+
+      const isSpam = d.label === 'spam';
+
+      document.getElementById('resStripe').className = 'res-stripe rs-' + d.label;
+      document.getElementById('resTop').className    = 'res-top rt-' + d.label;
+      document.getElementById('vRing').className     = 'verdict-ring vr-' + d.label;
+      document.getElementById('vSym').textContent    = isSpam ? '✕' : '✓';
+      document.getElementById('vWord').textContent   = d.label.toUpperCase();
+      document.getElementById('vcHl').className      = 'vc-hl vh-' + d.label;
+      document.getElementById('vcHl').textContent    = isSpam ? 'Spam detected' : 'Looks legitimate';
+      document.getElementById('vcDesc').textContent  = isSpam
+        ? `Classified as spam with ${d.confidence}% confidence by ${d.model}.`
+        : `Classified as ham (legitimate) with ${d.confidence}% confidence by ${d.model}.`;
+
+      document.getElementById('bfSpam').style.width = d.proba.spam + '%';
+      document.getElementById('bfHam').style.width  = d.proba.ham  + '%';
+      document.getElementById('bpSpam').textContent = d.proba.spam + '%';
+      document.getElementById('bpHam').textContent  = d.proba.ham  + '%';
+
+      // Features
+      const f = d.features;
+      document.getElementById('featGrid').innerHTML = [
+        {v: f.word_count,   l: 'Words'},
+        {v: f.char_count,   l: 'Chars'},
+        {v: f.exclaim_count,l: 'Exclaim'},
+        {v: f.digit_count,  l: 'Digits'},
+        {v: (f.upper_ratio*100).toFixed(0)+'%', l: 'Caps ratio'},
+        {v: f.currency ? 'Yes':'No', l: 'Currency'},
+        {v: f.has_url    ? 'Yes':'No', l: 'URL'},
+        {v: f.has_phone  ? 'Yes':'No', l: 'Phone'},
+      ].map(x => `
+        <div class="feat-cell">
+          <div class="fc-val">${x.v}</div>
+          <div class="fc-lbl">${x.l}</div>
+        </div>`).join('');
+
+      document.getElementById('cleanBox').textContent = d.cleaned || '—';
+      document.getElementById('resultCard').style.display = 'block';
+
+      // Session
+      sess.total++; if(isSpam) sess.spam++; else sess.ham++;
+      sess.conf += d.confidence;
+      document.getElementById('sTotal').textContent = sess.total;
+      document.getElementById('sSpam').textContent  = sess.spam;
+      document.getElementById('sHam').textContent   = sess.ham;
+      document.getElementById('sConf').textContent  = Math.round(sess.conf/sess.total)+'%';
+
+    } catch(e) {
+      const b = document.getElementById('errBox');
+      b.textContent = 'Error: ' + e.message;
+      b.style.display = 'block';
+    }
+
+    document.getElementById('classifyBtn').disabled = false;
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Metrics — SpamGuard{% endblock %}
+{% block page_label %}Model Evaluation{% endblock %}
+
+{% block page_css %}
+.metrics-page { padding: 28px 32px 60px; max-width: 1020px; }
+
+.page-head { margin-bottom: 28px; }
+.ph-title { font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -.3px; }
+.ph-sub   { font-size: 13px; color: var(--ink3); margin-top: 4px; font-weight: 300; }
+
+/* Loading state */
+#loadingState {
+  text-align: center; padding: 80px 20px; color: var(--ink3);
+}
+.spin {
+  width: 32px; height: 32px;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Dataset overview */
+.ds-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 28px;
+}
+.ds-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 16px 18px;
+}
+.ds-label {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .9px;
+  text-transform: uppercase; color: var(--ink3); margin-bottom: 7px;
+}
+.ds-value {
+  font-size: 26px; font-weight: 600;
+  font-family: 'DM Mono', monospace; color: var(--ink); line-height: 1;
+}
+
+/* Model cards grid */
+.model-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+.mc {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.mc-head {
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.mc-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.mc-best {
+  font-size: 10px; font-weight: 600; letter-spacing: .8px;
+  padding: 2px 8px; border-radius: 3px;
+  background: var(--ink); color: #fff;
+  font-family: 'DM Mono', monospace;
+}
+.mc-body { padding: 16px 18px; }
+
+.m-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.m-row:last-child { margin-bottom: 0; }
+.m-lbl { font-size: 12px; color: var(--ink2); width: 68px; flex-shrink: 0; }
+.m-track {
+  flex: 1; height: 5px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 3px; overflow: hidden;
+}
+.m-fill {
+  height: 100%; border-radius: 3px;
+  background: var(--ink);
+  transition: width .8s cubic-bezier(.16,1,.3,1);
+}
+.m-pct {
+  font-size: 12.5px; font-weight: 600;
+  font-family: 'DM Mono', monospace; color: var(--ink);
+  width: 44px; text-align: right;
+}
+
+/* Comparison table */
+.cmp-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden; margin-bottom: 28px;
+}
+.cmp-title {
+  padding: 13px 18px;
+  background: var(--surface2); border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink3);
+}
+.cmp-tbl { width: 100%; border-collapse: collapse; }
+.cmp-tbl th {
+  padding: 10px 18px; text-align: left;
+  font-size: 10.5px; font-weight: 600;
+  letter-spacing: .9px; text-transform: uppercase; color: var(--ink3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.cmp-tbl th:not(:first-child) { text-align: center; }
+.cmp-tbl td {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--ink2);
+}
+.cmp-tbl td:not(:first-child) {
+  text-align: center;
+  font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--ink);
+}
+.cmp-tbl tr:last-child td { border-bottom: none; }
+.cmp-tbl tr:hover td { background: var(--surface2); }
+.best-cell { font-weight: 600; color: var(--ink) !important; }
+.best-badge {
+  display: inline-block;
+  font-size: 9px; font-weight: 700; letter-spacing: .8px;
+  background: var(--ink); color: #fff;
+  padding: 1px 6px; border-radius: 3px; margin-left: 6px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Confusion matrices */
+.cm-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 28px; }
+.cm-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); overflow: hidden;
+}
+.cm-head {
+  padding: 12px 16px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px; font-weight: 600; color: var(--ink);
+}
+.cm-body { padding: 14px; }
+.cm-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+}
+.cm-cell {
+  border-radius: var(--r-sm); padding: 12px 10px; text-align: center;
+}
+.cm-tn { background: var(--blue-bg); border: 1px solid var(--blue-b); }
+.cm-fp { background: var(--red-bg);  border: 1px solid var(--red-b); }
+.cm-fn { background: var(--red-bg);  border: 1px solid var(--red-b); }
+.cm-tp { background: var(--blue-bg); border: 1px solid var(--blue-b); }
+.cm-val {
+  font-size: 20px; font-weight: 700;
+  font-family: 'DM Mono', monospace; line-height: 1;
+}
+.cm-tn .cm-val, .cm-tp .cm-val { color: var(--blue); }
+.cm-fp .cm-val, .cm-fn .cm-val { color: var(--red); }
+.cm-tag { font-size: 9.5px; color: var(--ink3); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+.cm-labels {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; font-size: 10px; color: var(--ink3);
+  font-family: 'DM Mono', monospace;
+}
+{% endblock %}
+
+{% block content %}
+<div class="metrics-page">
+
+  <div class="page-head">
+    <h1 class="ph-title">Model evaluation</h1>
+    <p class="ph-sub">Performance metrics for all three classifiers on the held-out test set</p>
+  </div>
+
+  <div id="loadingState">
+    <div class="spin"></div>
+    <div style="font-size:13px;color:var(--ink3)">Training models, please wait...</div>
+  </div>
+
+  <div id="metricsContent" style="display:none">
+
+    <!-- Dataset overview -->
+    <div class="ds-strip" id="dsStrip"></div>
+
+    <!-- Model cards -->
+    <div class="model-cards" id="modelCards"></div>
+
+    <!-- Comparison table -->
+    <div class="cmp-card">
+      <div class="cmp-title">Full comparison</div>
+      <table class="cmp-tbl">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Accuracy</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1 Score</th>
+          </tr>
+        </thead>
+        <tbody id="cmpBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Confusion matrices -->
+    <div class="cm-row" id="cmRow"></div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  function onReady(d) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('metricsContent').style.display = 'block';
+
+    const m  = d.metrics;
+    const ds = m._dataset || {};
+    const modelNames = ['Naive Bayes', 'Logistic Regression', 'Linear SVM'];
+
+    // Dataset strip
+    document.getElementById('dsStrip').innerHTML = [
+      {l:'Total emails', v: (ds.total||0).toLocaleString()},
+      {l:'Spam',         v: ds.spam||'—'},
+      {l:'Ham',          v: ds.ham||'—'},
+      {l:'Vocab size',   v: ds.vocab_size ? (ds.vocab_size/1000).toFixed(1)+'k' : '—'},
+    ].map(x => `
+      <div class="ds-card">
+        <div class="ds-label">${x.l}</div>
+        <div class="ds-value">${x.v}</div>
+      </div>`).join('');
+
+    // Find best model by F1
+    let bestName = '', bestF1 = 0;
+    modelNames.forEach(n => { if (m[n] && m[n].f1 > bestF1) { bestF1 = m[n].f1; bestName = n; }});
+
+    // Model cards
+    document.getElementById('modelCards').innerHTML = modelNames.map(n => {
+      const r = m[n] || {}; const isBest = n === bestName;
+      return `
+        <div class="mc">
+          <div class="mc-head">
+            <span class="mc-name">${n}</span>
+            ${isBest ? '<span class="mc-best">BEST</span>' : ''}
+          </div>
+          <div class="mc-body">
+            ${[['Accuracy', r.accuracy||0], ['Precision', r.precision||0],
+               ['Recall', r.recall||0], ['F1 Score', r.f1||0]].map(([lbl,val]) => `
+              <div class="m-row">
+                <span class="m-lbl">${lbl}</span>
+                <div class="m-track"><div class="m-fill" style="width:${val}%"></div></div>
+                <span class="m-pct">${val}%</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }).join('');
+
+    // Comparison table
+    document.getElementById('cmpBody').innerHTML = modelNames.map(n => {
+      const r = m[n] || {}; const isBest = n === bestName;
+      return `
+        <tr>
+          <td>${n}${isBest ? '<span class="best-badge">BEST</span>' : ''}</td>
+          <td class="${isBest?'best-cell':''}">${r.accuracy||'—'}%</td>
+          <td>${r.precision||'—'}%</td>
+          <td>${r.recall||'—'}%</td>
+          <td class="${isBest?'best-cell':''}">${r.f1||'—'}%</td>
+        </tr>`;
+    }).join('');
+
+    // Confusion matrices
+    document.getElementById('cmRow').innerHTML = modelNames.map(n => {
+      const r  = m[n]  || {};
+      const cm = r.cm  || [[0,0],[0,0]];
+      const tn = cm[0][0], fp = cm[0][1];
+      const fn = cm[1][0], tp = cm[1][1];
+      return `
+        <div class="cm-card">
+          <div class="cm-head">${n}</div>
+          <div class="cm-body">
+            <div class="cm-grid">
+              <div class="cm-cell cm-tn"><div class="cm-val">${tn}</div><div class="cm-tag">TN</div></div>
+              <div class="cm-cell cm-fp"><div class="cm-val">${fp}</div><div class="cm-tag">FP</div></div>
+              <div class="cm-cell cm-fn"><div class="cm-val">${fn}</div><div class="cm-tag">FN</div></div>
+              <div class="cm-cell cm-tp"><div class="cm-val">${tp}</div><div class="cm-tag">TP</div></div>
+            </div>
+            <div class="cm-labels">
+              <span>Actual: Ham / Spam</span>
+              <span>Predicted →</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+</script>
+{% endblock %}
